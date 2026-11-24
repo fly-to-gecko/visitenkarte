@@ -57,6 +57,16 @@ fieldset + fieldset { margin-top: 18px; padding-top: 16px; border-top: 1px solid
 .cardbar .grow { flex: 1 1 180px; }
 fieldset.cards { background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 button.danger { color: #b3261e; }
+a.btn { display: inline-block; text-align: center; text-decoration: none; font-weight: 600; font-size: 0.9rem; border-radius: 8px; padding: 9px 14px; border: 1px solid var(--line); background: var(--field); color: var(--fg); }
+a.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Vollbild-Kartenanzeige (karte.html#karte=…) */
+body.viewing { padding: 0 !important; overflow: hidden; }
+body.viewing > *:not(#viewer) { display: none !important; }
+#viewer { position: fixed; inset: 0; display: grid; place-items: center; background: #fff;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+#viewImg { width: 100%; height: 100%; object-fit: contain; display: block; }
+#viewHint { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); font: 500 15px/1.4 system-ui, sans-serif;
+  background: #172029; color: #fff; border: 0; border-radius: 12px; padding: 12px 14px; text-align: left; box-shadow: 0 6px 24px rgb(0 0 0 / 0.3); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 button.danger.armed { background: #b3261e; color: #fff; border-color: #b3261e; }
 label .sub { font-size: 0.75rem; opacity: 0.8; }
@@ -192,6 +202,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <figcaption>Hochformat fürs Handy <span>1200 × 1800</span></figcaption>
           <div class="stage"><img id="outTall" class="tall" alt="Visitenkarte im Hochformat mit QR-Code"></div>
           <button type="button" class="primary" id="btnPngTall">Hochformat speichern</button>
+          <a class="btn" id="lnkHome" href="#" target="_blank" rel="noopener">Als App auf den Home-Bildschirm</a>
+          <p class="hint">Öffnet die Karte als Vollbild in Safari. Dort Teilen □↑ → „Zum Home-Bildschirm“. Die Karte bekommt ein eigenes Symbol mit deinen Initialen und läuft ohne Internet.</p>
         </figure>
         <figure class="print">
           <figcaption>Druckversion quer <span>85 × 55 mm · 3 mm Beschnitt · 600 dpi</span></figcaption>
@@ -228,6 +240,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   </section>
 </div>
 
+<div id="viewer" hidden>
+  <img id="viewImg" alt="Visitenkarte">
+  <button type="button" id="viewHint">Auf den Home-Bildschirm legen: unten auf Teilen □↑ tippen, dann „Zum Home-Bildschirm“. <u>OK</u></button>
+</div>
+
 <script src="qrcode.min.js"></script>
 <script src="jspdf.umd.min.js"></script>
 <script>
@@ -253,7 +270,63 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   const newId = () => "k" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const curCard = () => state.cards.find(c => c.id === state.current) || state.cards[0];
 
+  // ---------- Kartenanzeige: alle Daten der Karte stecken im Link nach "#karte=" ----------
+  const VIEW_URL = "https://fly-to-gecko.github.io/visitenkarte/karte.html";
+  const VIEW = location.hash.startsWith("#karte=");
+  function encodeCard() {
+    const d = { name: $("cardName").value.trim() };
+    FIELDS.forEach(f => d[f] = $(f).value);
+    const bytes = new TextEncoder().encode(JSON.stringify(d));
+    let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function decodeCard(str) {
+    const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
+  }
+  // Symbol für den Home-Bildschirm: Initialen auf Weiß mit orangem Streifen
+  function homeIcon(name) {
+    const c = document.createElement("canvas"); c.width = c.height = 180;
+    const x = c.getContext("2d");
+    x.fillStyle = "#ffffff"; x.fillRect(0, 0, 180, 180);
+    const g = x.createLinearGradient(180, 0, 0, 0);
+    g.addColorStop(0, "#ffb13b"); g.addColorStop(0.2, "#ffb13b"); g.addColorStop(1, "#ffffff");
+    x.fillStyle = g; x.fillRect(0, 128, 180, 18);
+    const ini = [v("first"), v("last")].filter(Boolean).map(t => t[0].toUpperCase()).join("") || (name || "V")[0].toUpperCase();
+    x.fillStyle = "#463c3c"; x.textAlign = "center"; x.textBaseline = "alphabetic";
+    x.font = `700 ${ini.length > 1 ? 72 : 88}px "Arial", "Liberation Sans", sans-serif`;
+    x.fillText(ini, 90, 108);
+    return c.toDataURL("image/png");
+  }
+  function setHead(sel, attr, make, value) {
+    let el = document.head.querySelector(sel);
+    if (!el) { el = make(); document.head.append(el); }
+    el.setAttribute(attr, value);
+  }
+  function startViewer() {
+    document.body.classList.add("viewing");
+    $("viewer").hidden = false;
+    const name = curCard().name || "Visitenkarte";
+    document.title = name;
+    setHead('meta[name="apple-mobile-web-app-title"]', "content", () => { const m = document.createElement("meta"); m.name = "apple-mobile-web-app-title"; return m; }, name);
+    setHead('meta[name="apple-mobile-web-app-capable"]', "content", () => { const m = document.createElement("meta"); m.name = "apple-mobile-web-app-capable"; return m; }, "yes");
+    setHead('link[rel="apple-touch-icon"]', "href", () => { const l = document.createElement("link"); l.rel = "apple-touch-icon"; return l; }, homeIcon(name));
+    const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+    $("viewHint").hidden = !!standalone;
+    $("viewHint").addEventListener("click", () => $("viewHint").hidden = true);
+  }
+
   function load() {
+    if (VIEW) {
+      let data = null;
+      try { data = decodeCard(location.hash.slice(7)); } catch (e) {}
+      if (data) {
+        state = { current: "view", cards: [{ id: "view", name: data.name || "Visitenkarte", data }] };
+        applyCard(curCard());
+        startViewer();
+        return;
+      }
+    }
     try { state = JSON.parse(localStorage.getItem(STORE2) || "null"); } catch (e) {}
     if (!state || !Array.isArray(state.cards) || !state.cards.length) {
       let old = null;
@@ -277,6 +350,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     $("btnDel").disabled = state.cards.length < 2;
   }
   function save() {
+    if (VIEW) return;   // Anzeige-Modus: nichts im Gerät speichern
     const card = curCard(), d = {};
     FIELDS.forEach(f => d[f] = $(f).value);
     card.data = d;
@@ -711,6 +785,12 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     try { qr = makeQr(lastVcf); } catch (e) { statusEl.textContent = "Zu viele Daten für einen QR-Code – bitte Felder kürzen."; return; }
     const bel = $("design").value === "belcat";
     $("styleOpts").hidden = bel;
+    if (VIEW) {
+      const t = bel ? renderPortraitBel(qr) : renderPortrait(qr);
+      $("viewImg").src = t.toDataURL("image/png");
+      $("viewer").style.background = bel ? "#ffffff" : palette().bg;
+      return;
+    }
     png.card = (bel ? renderCardBel(qr) : renderCard(qr)).toDataURL("image/png");
     png.tall = (bel ? renderPortraitBel(qr) : renderPortrait(qr)).toDataURL("image/png");
     $("outCard").src = png.card;
@@ -719,6 +799,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     printCanvas = pc;
     $("outPrint").src = printPreview(pc);
     if (isExample) statusEl.textContent = "Beispieldaten – trag deine eigenen Daten ein.";
+    $("lnkHome").href = VIEW_URL + "#karte=" + encodeCard();
   }
 
   function fileBase() {
