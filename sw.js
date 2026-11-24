@@ -2,13 +2,17 @@
    Bei einer neuen Version die Nummer unten erhöhen (v1 -> v2),
    dann holen sich die Handys beim nächsten Start mit Internet das Update. */
 const PREFIX = "visitenkarte-";
-const CACHE = PREFIX + "v3";
+const CACHE = PREFIX + "v4";
 const FILES = ["./", "index.html", "karte.html", "manifest.webmanifest",
                "qrcode.min.js", "jspdf.umd.min.js",
                "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  /* cache: "reload" holt die Dateien wirklich frisch vom Server,
+     nicht aus dem Browser-Zwischenspeicher (GitHub erlaubt dort bis zu 10 Minuten alte Kopien) */
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -25,7 +29,7 @@ self.addEventListener("fetch", e => {
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const hit = await cache.match(e.request, { ignoreSearch: true });
-      const net = fetch(e.request).then(res => {
+      const net = fetch(e.request, { cache: "no-cache" }).then(res => {
         if (res && res.ok && new URL(e.request.url).origin === location.origin) {
           cache.put(e.request, res.clone());
         }
