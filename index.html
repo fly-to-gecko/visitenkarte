@@ -122,6 +122,12 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <label class="grow">Name der Karte<input id="cardName" placeholder="z. B. belCAT, Privat, Verein"></label>
           <button type="button" id="btnDel" class="danger">Karte löschen</button>
         </div>
+        <label>Design
+          <select id="design">
+            <option value="belcat" selected>belCAT-Briefkopf mit Logo</option>
+            <option value="standard">Standard</option>
+          </select>
+        </label>
       </fieldset>
       <fieldset>
         <legend>Person</legend>
@@ -161,15 +167,9 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
         </div>
         <label>Land<input id="country" autocomplete="country-name"></label>
       </fieldset>
-      <fieldset>
-        <legend>Gestaltung</legend>
-        <label>Design
-          <select id="design">
-            <option value="standard">Standard</option>
-            <option value="belcat">belCAT-Briefkopf mit Logo</option>
-          </select>
-        </label>
-        <div class="row" id="styleOpts">
+      <fieldset id="styleOpts">
+        <legend>Farben (Standard-Design)</legend>
+        <div class="row">
           <label>Akzentfarbe<input id="color" type="color" value="#1f6f78"></label>
           <label>Kartenhintergrund
             <select id="theme">
@@ -235,10 +235,10 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","street","zip","city","country","degreePos","design","color","theme"];
   const STORE = "visitenkarte-qr-v1";
   const EXAMPLE = {
-    degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "Beispiel Studio", orgsub: "Ingenieurbüro München",
+    degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "belCAT", orgsub: "",
     mobile: "+49 151 23456789", phone: "", email: "alex@beispiel.de", url: "www.beispiel.de",
     street: "Musterstraße 12", zip: "80331", city: "München", country: "Deutschland",
-    design: "standard", color: "#1f6f78", theme: "light"
+    design: "belcat", color: "#1f6f78", theme: "light"
   };
   const $ = id => document.getElementById(id);
   const statusEl = $("status");
