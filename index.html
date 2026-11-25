@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v12</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v13</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -164,8 +164,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       <fieldset>
         <legend>Kontakt</legend>
         <div class="row">
-          <label>Mobil<input id="mobile" type="tel" autocomplete="tel"></label>
-          <label>Telefon<input id="phone" type="tel"></label>
+          <label>Mobil<input id="mobile" type="text" inputmode="text" autocomplete="tel" placeholder="+49 151 2345678"></label>
+          <label>Telefon<input id="phone" type="text" inputmode="text" placeholder="+49 89 1234567"></label>
         </div>
         <label>E-Mail<input id="email" type="email" autocomplete="email"></label>
         <label>Website<input id="url" type="url" placeholder="www.beispiel.de"></label>
