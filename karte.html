@@ -167,6 +167,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
         </div>
         <label>E-Mail<input id="email" type="email" autocomplete="email"></label>
         <label>Website<input id="url" type="url" placeholder="www.beispiel.de"></label>
+        <label>LinkedIn<input id="linkedin" type="text" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="linkedin.com/in/dein-name oder nur dein-name"></label>
       </fieldset>
       <fieldset>
         <legend>Adresse</legend>
@@ -249,7 +250,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 <script src="jspdf.umd.min.js"></script>
 <script>
 (() => {
-  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","street","zip","city","country","degreePos","design","color","theme"];
+  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","color","theme"];
   const STORE = "visitenkarte-qr-v1";
   const EXAMPLE = {
     degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "belCAT", orgsub: "",
@@ -375,6 +376,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (v("phone")) L.push(`TEL;TYPE=WORK,VOICE:${v("phone")}`);
     if (v("email")) L.push(`EMAIL;TYPE=INTERNET:${v("email")}`);
     if (v("url")) L.push(`URL:${normUrl(v("url"))}`);
+    if (v("linkedin")) L.push(`item1.URL:${linkedinUrl()}`, "item1.X-ABLabel:LinkedIn");
     if (v("street") || v("city") || v("zip") || v("country"))
       L.push(`ADR;TYPE=WORK:;;${esc(v("street"))};${esc(v("city"))};;${esc(v("zip"))};${esc(v("country"))}`);
     L.push("END:VCARD");
@@ -399,6 +401,13 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   const fullName = () => [v("degree"), v("first"), v("last")].filter(Boolean).join(" ");
   const normUrl =u => /^https?:\/\//i.test(u) ? u : "https://" + u;
   const prettyUrl = u => u.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  // LinkedIn: vollständige Adresse, "linkedin.com/in/…" oder nur der Profilname
+  const linkedinUrl = () => {
+    const u = v("linkedin").replace(/^@/, "");
+    if (/linkedin\./i.test(u)) return normUrl(u);
+    return "https://www.linkedin.com/in/" + u.replace(/^\/+|\/+$/g, "");
+  };
+  const prettyLinkedin = () => prettyUrl(linkedinUrl()).replace(/^www\./i, "");
 
   // ---------- QR ----------
   function makeQr(text) {
@@ -437,6 +446,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (v("phone")) lines.push(["Telefon", v("phone")]);
     if (v("email")) lines.push(["E-Mail", v("email")]);
     if (v("url")) lines.push(["Web", prettyUrl(v("url"))]);
+    if (v("linkedin")) lines.push(["LinkedIn", prettyLinkedin()]);
     const addr1 = v("street"), addr2 = [v("zip"), v("city")].filter(Boolean).join(" ");
     const addr = [addr1, addr2, v("country")].filter(Boolean);
     const withOrg = addr.length && v("org") && $("design").value === "belcat";
@@ -512,7 +522,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (rl.length && degAbove()) { ctx.fillStyle = p.fg; drawLines(ctx, rl, W / 2, y + 100, 42, 700, BODY, 32, maxW, 18); }
     else if (rl.length) { ctx.fillStyle = acc; drawLines(ctx, rl, W / 2, y + 66, 52, 600, BODY, 42, maxW, 22); }
 
-    const qrSize = 740 - extra, qrX = (W - qrSize) / 2, qrY = 310 + extra;
+    const many = Math.max(0, contactLines().length - 4) * 60;   // bei vielen Kontaktzeilen den QR-Code etwas kleiner
+    const qrSize = 740 - extra - many, qrX = (W - qrSize) / 2, qrY = 310 + extra;
     if ($("theme").value === "light") { ctx.strokeStyle = p.line; ctx.lineWidth = 2; roundRect(ctx, qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, qrSize * 0.04); ctx.stroke(); }
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = p.muted; ctx.font = `500 28px ${BODY}`;
@@ -521,8 +532,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     y = qrY + qrSize + 110;
     ctx.fillStyle = p.line; ctx.fillRect(W / 2 - 160, y, 320, 3);
     const lines = contactLines();
-    const step = lines.length > 4 ? 104 : 116;
     y += 100;
+    const step = Math.min(lines.length > 4 ? 104 : 116, lines.length > 1 ? (H - 70 - y) / (lines.length - 1) : 116);
     lines.forEach(([label, val]) => {
       ctx.fillStyle = p.muted; ctx.font = `600 24px ${BODY}`; ctx.fillText(label.toUpperCase(), W / 2, y - 38);
       ctx.fillStyle = p.fg; fitFont(ctx, val, 500, BODY, 42, maxW, 18); ctx.fillText(val, W / 2, y + 6);
@@ -533,7 +544,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   }
 
   // ---------- belCAT-Stil: Grauverlauf, oranger Streifen, Arial, Dunkelbraun ----------
-  const BEL = { ink: "#463c3c", grey: "#666666", light: "#969696", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
+  const BEL = { ink: "#000000", grey: "#666666", light: "#969696", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
   function belHeader(ctx, W, h) {
     const gTop = h * 0.56, sTop = gTop, sBot = h * 0.71;
     let g = ctx.createLinearGradient(0, 0, 0, gTop);
@@ -641,9 +652,16 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     ctx.textAlign = "left";
     return { c, ctx };
   }
-  function belContacts(ctx, x, y, maxW, align, labelPx, valPx, step) {
+  // bottom: unterste erlaubte Grundlinie – bei vielen Zeilen rücken sie enger zusammen und die Schrift wird etwas kleiner
+  function belContacts(ctx, x, y, maxW, align, labelPx, valPx, step, bottom) {
     ctx.textAlign = align;
-    contactLines().forEach(([label, val]) => {
+    const lines = contactLines(), n = lines.length;
+    if (bottom && n > 1 && y + (n - 1) * step > bottom) {
+      step = (bottom - y) / (n - 1);
+      const need = valPx * 0.95 + labelPx + 8;
+      if (step < need) { const k = step / need; labelPx = Math.round(labelPx * k); valPx = Math.round(valPx * k); }
+    }
+    lines.forEach(([label, val]) => {
       ctx.fillStyle = BEL.light; ctx.font = `400 ${labelPx}px ${BEL.font}`; ctx.fillText(label, x, y - valPx * 0.95);
       ctx.fillStyle = BEL.grey; fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); ctx.fillText(val, x, y);
       y += step;
@@ -669,7 +687,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       else { ctx.fillStyle = BEL.grey; drawLines(ctx, tl, pad, headH + 183, 40, 400, BEL.font, 34, textW, 18); }
     }
     const n = contactLines().length;
-    belContacts(ctx, pad, headH + (bosch ? 310 : 290) + tExtra, textW, "left", 22, 34, n > 4 ? (tExtra ? 78 : (bosch ? 84 : 88)) : (tExtra ? 90 : 98));
+    belContacts(ctx, pad, headH + (bosch ? 310 : 290) + tExtra, textW, "left", 22, 34, n > 4 ? (tExtra ? 78 : (bosch ? 84 : 88)) : (tExtra ? 90 : 98), H - 60 - 22);
     ctx.fillStyle = BEL.ink; ctx.fillRect(pad, H - 60, W - pad * 2, 2);
     return c;
   }
@@ -686,13 +704,14 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       if (bosch) { ctx.fillStyle = BEL.ink; drawLines(ctx, tl, W / 2, headH + 222, 40, 700, BEL.font, 32, W - pad * 2, 16); }
       else { ctx.fillStyle = BEL.grey; drawLines(ctx, tl, W / 2, headH + 184, 48, 400, BEL.font, 40, W - pad * 2, 20); }
     }
-    const qrSize = (bosch ? 580 : (logoReady() ? 620 : 650)) - tExtra, qrX = (W - qrSize) / 2, qrY = headH + (bosch ? 262 : 215) + tExtra;
+    const many = Math.max(0, contactLines().length - 5) * 30;   // bei mehr als 5 Kontaktzeilen den QR-Code etwas kleiner
+    const qrSize = (bosch ? 580 : (logoReady() ? 620 : 650)) - tExtra - many, qrX = (W - qrSize) / 2, qrY = headH + (bosch ? 262 : 215) + tExtra;
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = BEL.light; ctx.font = `400 26px ${BEL.font}`;
     ctx.fillText("Scannen = Kontakt speichern", W / 2, qrY + qrSize + 48);
     ctx.fillStyle = BEL.ink; ctx.fillRect(W / 2 - 200, qrY + qrSize + 90, 400, 2);
     const n = contactLines().length;
-    belContacts(ctx, W / 2, qrY + qrSize + 190, W - pad * 2, "center", 24, 40, n > 4 ? 98 : 110);
+    belContacts(ctx, W / 2, qrY + qrSize + 190, W - pad * 2, "center", 24, 40, n > 4 ? 98 : 110, H - 50 - 22);
     ctx.fillStyle = BEL.ink; ctx.fillRect(pad, H - 50, W - pad * 2, 2);
     return c;
   }
@@ -753,12 +772,16 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     // Kontakte: Bezeichnung links, Wert daneben, bündig unten am QR-Code
     // Abstand so wählen, dass alle Zeilen zwischen Position und Unterkante passen
     const lines = contactLines(true), labW = 13 * MM;
-    const firstMin = y + 4.4 * MM;
-    const step = lines.length > 1 ? Math.max(2.7 * MM, Math.min(3.6 * MM, (B - firstMin) / (lines.length - 1))) : 3.6 * MM;
-    let cy = B - (lines.length - 1) * step;
+    // Bei vielen Zeilen: kleinerer Abstand zur Position, engere Zeilen und etwas kleinere Schrift
+    const n = lines.length;
+    let gap = 4.4 * MM, step = n > 1 ? (B - (y + gap)) / (n - 1) : 3.6 * MM;
+    if (n > 1 && step < 2.7 * MM) { gap = 3.6 * MM; step = (B - (y + gap)) / (n - 1); }
+    step = Math.max(2.2 * MM, Math.min(3.6 * MM, step));
+    const valPx = Math.min(7 * PT, step * 0.8), labPx = Math.min(5.5 * PT, valPx * 0.8);
+    let cy = B - (n - 1) * step;
     lines.forEach(([label, val]) => {
-      ctx.fillStyle = light; ctx.font = `400 ${5.5 * PT}px ${font}`; ctx.fillText(label, L, cy);
-      ctx.fillStyle = grey; fitFont(ctx, val, 400, font, 7 * PT, tw - labW, 4 * PT); ctx.fillText(val, L + labW, cy);
+      ctx.fillStyle = light; ctx.font = `400 ${labPx}px ${font}`; ctx.fillText(label, L, cy);
+      ctx.fillStyle = grey; fitFont(ctx, val, 400, font, valPx, tw - labW, 4 * PT); ctx.fillText(val, L + labW, cy);
       cy += step;
     });
     return c;
