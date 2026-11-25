@@ -545,7 +545,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   }
 
   // ---------- belCAT-Stil: Grauverlauf, oranger Streifen, Arial, Dunkelbraun ----------
-  const BEL = { ink: "#000000", grey: "#666666", light: "#969696", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
+  const BEL = { ink: "#000000", val: "#222222", grey: "#666666", light: "#969696", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
   function belHeader(ctx, W, h) {
     const gTop = h * 0.56, sTop = gTop, sBot = h * 0.71;
     let g = ctx.createLinearGradient(0, 0, 0, gTop);
@@ -654,6 +654,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     return { c, ctx };
   }
   // bottom: unterste erlaubte Grundlinie – bei vielen Zeilen rücken sie enger zusammen und die Schrift wird etwas kleiner
+  // Arial hat keinen Halbfett-Schnitt: dünne Kontur in Textfarbe macht die Schrift etwas kräftiger
+  function medium(ctx, text, x, y, px, color) {
+    ctx.fillText(text, x, y);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = px * 0.02; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.restore();
+  }
   function belContacts(ctx, x, y, maxW, align, labelPx, valPx, step, bottom) {
     ctx.textAlign = align;
     const lines = contactLines(), n = lines.length;
@@ -664,7 +669,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     }
     lines.forEach(([label, val]) => {
       ctx.fillStyle = BEL.light; ctx.font = `400 ${labelPx}px ${BEL.font}`; ctx.fillText(label, x, y - valPx * 0.95);
-      ctx.fillStyle = BEL.grey; fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); ctx.fillText(val, x, y);
+      ctx.fillStyle = BEL.val; const fpx = fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); medium(ctx, val, x, y, fpx, BEL.val);
       y += step;
     });
     ctx.textAlign = "left";
@@ -782,7 +787,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     let cy = B - (n - 1) * step;
     lines.forEach(([label, val]) => {
       ctx.fillStyle = light; ctx.font = `400 ${labPx}px ${font}`; ctx.fillText(label, L, cy);
-      ctx.fillStyle = grey; fitFont(ctx, val, 400, font, valPx, tw - labW, 4 * PT); ctx.fillText(val, L + labW, cy);
+      if (bel) { ctx.fillStyle = BEL.val; const fpx = fitFont(ctx, val, 400, font, valPx, tw - labW, 4 * PT); medium(ctx, val, L + labW, cy, fpx, BEL.val); }
+      else { ctx.fillStyle = grey; fitFont(ctx, val, 400, font, valPx, tw - labW, 4 * PT); ctx.fillText(val, L + labW, cy); }
       cy += step;
     });
     return c;
