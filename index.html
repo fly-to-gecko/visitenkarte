@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v18</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v19</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -548,7 +548,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const step = lines.length > 4 ? 92 : 104;
     lines.forEach(([label, val]) => {
       ctx.fillStyle = p.muted; ctx.font = `600 22px ${BODY}`;
-      ctx.fillText(label.toUpperCase(), pad, y - 34);
+      ctx.fillText(label.toUpperCase(), pad, y - 40);
       ctx.fillStyle = p.fg; fitFont(ctx, val, 500, BODY, 36, textW, 18);
       ctx.fillText(val, pad, y + 4);
       y += step;
@@ -587,7 +587,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     y += 100;
     const step = Math.min(lines.length > 4 ? 104 : 116, lines.length > 1 ? (H - 70 - y) / (lines.length - 1) : 116);
     lines.forEach(([label, val]) => {
-      ctx.fillStyle = p.muted; ctx.font = `600 24px ${BODY}`; ctx.fillText(label.toUpperCase(), W / 2, y - 38);
+      ctx.fillStyle = p.muted; ctx.font = `600 24px ${BODY}`; ctx.fillText(label.toUpperCase(), W / 2, y - 44);
       ctx.fillStyle = p.fg; fitFont(ctx, val, 500, BODY, 42, maxW, 18); ctx.fillText(val, W / 2, y + 6);
       y += step;
     });
@@ -717,11 +717,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const lines = contactLines(), n = lines.length;
     if (bottom && n > 1 && y + (n - 1) * step > bottom) {
       step = (bottom - y) / (n - 1);
-      const need = valPx * 0.95 + labelPx + 8;
+      const need = valPx * 1.1 + labelPx + 8;
       if (step < need) { const k = step / need; labelPx = Math.round(labelPx * k); valPx = Math.round(valPx * k); }
     }
     lines.forEach(([label, val]) => {
-      ctx.fillStyle = BEL.light; ctx.font = `400 ${labelPx}px ${BEL.font}`; ctx.fillText(label, x, y - valPx * 0.95);
+      ctx.fillStyle = BEL.light; ctx.font = `400 ${labelPx}px ${BEL.font}`; ctx.fillText(label, x, y - valPx * 1.1);
       ctx.fillStyle = BEL.val; const fpx = fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); medium(ctx, val, x, y, fpx, BEL.val);
       y += step;
     });
