@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v17</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v18</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -140,6 +140,13 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
             <option value="standard">Standard</option>
           </select>
         </label>
+        <label>Sprache auf der Karte
+          <select id="lang">
+            <option value="de" selected>Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <p class="hint">Gilt für die Beschriftungen (Mobil, Adresse …). Position und Titel trägst du für eine englische Karte selbst auf Englisch ein.</p>
       </fieldset>
       <fieldset>
         <legend>Person</legend>
@@ -262,7 +269,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 <script src="jspdf.umd.min.js"></script>
 <script>
 (() => {
-  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","color","theme"];
+  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","lang","color","theme"];
   const STORE = "visitenkarte-qr-v1";
   const EXAMPLE = {
     degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "belCAT", orgsub: "",
@@ -479,18 +486,24 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   }
   const DISPLAY = '"Sora", "Segoe UI", sans-serif', BODY = '"Inter", system-ui, sans-serif';
 
+  // Beschriftungen auf der Karte je nach gewählter Sprache
+  const TXT = {
+    de: { mobile: "Mobil", phone: "Telefon", email: "E-Mail", web: "Web", linkedin: "LinkedIn", address: "Adresse", scan: "Scannen = Kontakt speichern" },
+    en: { mobile: "Mobile", phone: "Phone", email: "Email", web: "Web", linkedin: "LinkedIn", address: "Address", scan: "Scan to save contact" }
+  };
+  const T = k => (TXT[$("lang").value] || TXT.de)[k];
   function contactLines(splitAddr) {
     const lines = [];
-    if (v("mobile")) lines.push(["Mobil", v("mobile")]);
-    if (v("phone")) lines.push(["Telefon", v("phone")]);
-    if (v("email")) lines.push(["E-Mail", v("email")]);
-    if (v("url")) lines.push(["Web", prettyUrl(v("url"))]);
-    if (v("linkedin")) lines.push(["LinkedIn", prettyLinkedin()]);
+    if (v("mobile")) lines.push([T("mobile"), v("mobile")]);
+    if (v("phone")) lines.push([T("phone"), v("phone")]);
+    if (v("email")) lines.push([T("email"), v("email")]);
+    if (v("url")) lines.push([T("web"), prettyUrl(v("url"))]);
+    if (v("linkedin")) lines.push([T("linkedin"), prettyLinkedin()]);
     const addr1 = v("street"), addr2 = [v("zip"), v("city")].filter(Boolean).join(" ");
     const addr = [addr1, addr2, v("country")].filter(Boolean);
     const withOrg = addr.length && v("org") && $("design").value === "belcat";
-    if (withOrg && splitAddr) { lines.push(["Adresse", v("org")]); lines.push(["", addr.join(", ")]); }
-    else { if (withOrg) addr.unshift(v("org")); if (addr.length) lines.push(["Adresse", addr.join(", ")]); }
+    if (withOrg && splitAddr) { lines.push([T("address"), v("org")]); lines.push(["", addr.join(", ")]); }
+    else { if (withOrg) addr.unshift(v("org")); if (addr.length) lines.push([T("address"), addr.join(", ")]); }
     return lines;
   }
 
@@ -513,7 +526,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if ($("theme").value === "light") { ctx.strokeStyle = p.line; ctx.lineWidth = 2; roundRect(ctx, qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, qrSize * 0.04); ctx.stroke(); }
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = p.muted; ctx.font = `500 24px ${BODY}`; ctx.textAlign = "center";
-    ctx.fillText("Scannen = Kontakt speichern", qrX + qrSize / 2, qrY + qrSize + 48);
+    ctx.fillText(T("scan"), qrX + qrSize / 2, qrY + qrSize + 48);
     ctx.textAlign = "left";
 
     const textW = qrX - pad - 70;
@@ -566,7 +579,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if ($("theme").value === "light") { ctx.strokeStyle = p.line; ctx.lineWidth = 2; roundRect(ctx, qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, qrSize * 0.04); ctx.stroke(); }
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = p.muted; ctx.font = `500 28px ${BODY}`;
-    ctx.fillText("Scannen = Kontakt speichern", W / 2, qrY + qrSize + 56);
+    ctx.fillText(T("scan"), W / 2, qrY + qrSize + 56);
 
     y = qrY + qrSize + 110;
     ctx.fillStyle = p.line; ctx.fillRect(W / 2 - 160, y, 320, 3);
@@ -720,7 +733,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const qrSize = 500, qrX = W - pad - qrSize, qrY = headH + 90;
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = BEL.light; ctx.font = `400 22px ${BEL.font}`; ctx.textAlign = "center";
-    ctx.fillText("Scannen = Kontakt speichern", qrX + qrSize / 2, qrY + qrSize + 40);
+    ctx.fillText(T("scan"), qrX + qrSize / 2, qrY + qrSize + 40);
     ctx.textAlign = "left";
     const textW = qrX - pad - 70;
     const name = (degAbove() ? personName() : fullName());
@@ -754,7 +767,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const qrSize = (bosch ? 580 : (logoReady() ? 620 : 650)) - tExtra - many, qrX = (W - qrSize) / 2, qrY = headH + (bosch ? 262 : 215) + tExtra;
     drawQr(ctx, qr, qrX, qrY, qrSize);
     ctx.fillStyle = BEL.light; ctx.font = `400 26px ${BEL.font}`;
-    ctx.fillText("Scannen = Kontakt speichern", W / 2, qrY + qrSize + 48);
+    ctx.fillText(T("scan"), W / 2, qrY + qrSize + 48);
     ctx.fillStyle = BEL.ink; ctx.fillRect(W / 2 - 200, qrY + qrSize + 90, 400, 2);
     const n = contactLines().length;
     belContacts(ctx, W / 2, qrY + qrSize + 190, W - pad * 2, "center", 24, 40, n > 4 ? 98 : 110, H - 50 - 22);
@@ -1027,7 +1040,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   });
 
   $("btnClear").addEventListener("click", () => {
-    FIELDS.forEach(f => { if (!["degreePos","design","color","theme"].includes(f)) $(f).value = ""; });
+    FIELDS.forEach(f => { if (!["degreePos","design","lang","color","theme"].includes(f)) $(f).value = ""; });
     isExample = false; save(); schedule(); statusEl.textContent = "Felder geleert.";
   });
 
