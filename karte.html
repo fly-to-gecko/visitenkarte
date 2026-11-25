@@ -121,7 +121,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v30</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v31</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -162,6 +162,13 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <select id="degreePos">
             <option value="above">klein über dem Namen</option>
             <option value="inline">vor dem Namen (Dipl.-Ing. Alex Beispiel)</option>
+          </select>
+        </label>
+        <label>Grad im QR-Code / Kontakt
+          <select id="degreeVcard">
+            <option value="no">nicht übernehmen</option>
+            <option value="prefix">vor dem Namen (Präfix, z. B. Dr., Dipl.-Ing.)</option>
+            <option value="suffix">nach dem Namen (Suffix, z. B. M.Sc., MBA)</option>
           </select>
         </label>
         <label>Position / Funktion im Unternehmen <span class="sub">(bis zu 2 Zeilen)</span><textarea id="title" rows="2" autocomplete="organization-title" placeholder="z. B. Geschäftsführerin&#10;Leitung Berechnung &amp; Simulation"></textarea></label>
@@ -290,7 +297,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 <script src="jspdf.umd.min.js"></script>
 <script>
 (() => {
-  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","lang","orgInAddr","color","theme"];
+  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","degreeVcard","design","lang","orgInAddr","color","theme"];
   const STORE = "visitenkarte-qr-v1";
   const EXAMPLE = {
     degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "belCAT", orgsub: "",
@@ -434,8 +441,9 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   const esc = s => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
   function buildVcard() {
     const L = ["BEGIN:VCARD", "VERSION:3.0"];
-    const fn = personName();   // akademischer Grad bewusst nicht im Kontakt – steht nur auf der Karte
-    L.push(`N:${esc(v("last"))};${esc(v("first"))};;;`);
+    const fn = personName();   // Anzeigename immer ohne Grad
+    const dv = $("degreeVcard").value, deg = esc(v("degree"));   // Grad nur als Präfix/Suffix im Namen, falls gewünscht
+    L.push(`N:${esc(v("last"))};${esc(v("first"))};;${dv === "prefix" ? deg : ""};${dv === "suffix" ? deg : ""}`);
     L.push(`FN:${esc(fn || v("org"))}`);
     if (v("org")) L.push(`ORG:${esc(v("org"))}`);   // nur die Firma – der Firmenzusatz bleibt auf der Karte
     if (titleLines().length) L.push(`TITLE:${esc(titleLines()[0])}`);   // nur die Hauptzeile – die Ergänzung bleibt auf der Karte
@@ -1097,7 +1105,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   });
 
   $("btnClear").addEventListener("click", () => {
-    FIELDS.forEach(f => { if (!["degreePos","design","lang","orgInAddr","color","theme"].includes(f)) $(f).value = ""; });
+    FIELDS.forEach(f => { if (!["degreePos","degreeVcard","design","lang","orgInAddr","color","theme"].includes(f)) $(f).value = ""; });
     isExample = false; save(); schedule(); statusEl.textContent = "Felder geleert.";
   });
 
