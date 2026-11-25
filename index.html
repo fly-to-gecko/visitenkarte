@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v13</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v14</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -194,7 +194,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       </fieldset>
       <fieldset>
         <legend>Sicherung</legend>
-        <p class="hint">Alle Karten mit ihren Eingaben als Datei sichern, z. B. in „Dateien“ auf dem iPhone. Beim Laden werden die Karten aus der Datei hinzugefügt; gleiche Karten werden durch den Stand aus der Datei ersetzt.</p>
+        <p class="hint">Alle Karten mit ihren Eingaben als Datei sichern, z. B. in „Dateien“ auf dem iPhone, unter Android im Download-Ordner. Beim Laden werden die Karten aus der Datei hinzugefügt; gleiche Karten werden durch den Stand aus der Datei ersetzt.</p>
         <div class="cardbar">
           <button type="button" id="btnBackup">Sicherung speichern</button>
           <button type="button" id="btnRestore">Sicherung laden</button>
@@ -216,7 +216,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <div class="stage"><img id="outTall" class="tall" alt="Visitenkarte im Hochformat mit QR-Code"></div>
           <button type="button" class="primary" id="btnPngTall">Hochformat speichern</button>
           <a class="btn" id="lnkHome" href="#" target="_blank" rel="noopener">Als App auf den Home-Bildschirm</a>
-          <p class="hint">Öffnet die Karte als Vollbild in Safari. Dort Teilen □↑ → „Zum Home-Bildschirm“. Die Karte bekommt ein eigenes Symbol mit deinen Initialen und läuft ohne Internet. Öffnet sie sich in einem Fenster innerhalb der App, dort zuerst auf das Safari-Symbol tippen.</p>
+          <p class="hint" id="homeHint">Öffnet die Karte als Vollbild in Safari. Dort Teilen □↑ → „Zum Home-Bildschirm“. Die Karte bekommt ein eigenes Symbol mit deinen Initialen und läuft ohne Internet. Öffnet sie sich in einem Fenster innerhalb der App, dort zuerst auf das Safari-Symbol tippen.</p>
         </figure>
         <figure class="print">
           <figcaption>Druckversion quer <span>85 × 55 mm · 3 mm Beschnitt · 600 dpi</span></figcaption>
@@ -228,7 +228,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <p class="hint">Die gestrichelte Linie in der Vorschau zeigt den Schnitt. Was außerhalb liegt, ist Beschnittzugabe und wird abgeschnitten. Die Linie ist nicht in der Datei.</p>
         </figure>
       </div>
-      <p class="hint">Am iPhone/iPad: Bild <strong>lange drücken → „Zu Fotos hinzufügen“</strong>. Am Rechner: Rechtsklick → „Bild speichern unter“ oder die Knöpfe.</p>
+      <p class="hint">Am iPhone/iPad: Bild <strong>lange drücken → „Zu Fotos hinzufügen“</strong>. Unter Android: Bild lange drücken → „Bild herunterladen“, oder die Knöpfe (Download-Ordner). Am Rechner: Rechtsklick → „Bild speichern unter“ oder die Knöpfe.</p>
       <div class="actions">
         <button type="button" id="btnVcf">Kontakt (.vcf) speichern</button>
         <button type="button" id="btnCopy">vCard-Text kopieren</button>
@@ -271,6 +271,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     design: "belcat", color: "#1f6f78", theme: "light"
   };
   const $ = id => document.getElementById(id);
+  const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const ANDROID = /Android/i.test(navigator.userAgent);
   const statusEl = $("status");
   const png = { card: "", tall: "" };
   let printCanvas = null;
@@ -316,6 +318,23 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (!el) { el = make(); document.head.append(el); }
     el.setAttribute(attr, value);
   }
+  if (ANDROID) {
+    $("homeHint").textContent = "Öffnet die Karte als Vollbild in Chrome. Dort Menü ⋮ → „Zum Startbildschirm hinzufügen“ bzw. „App installieren“. Die Karte bekommt ein eigenes Symbol und läuft ohne Internet. Öffnet sie sich in einem Fenster innerhalb der App, dort zuerst über ⋮ „In Chrome öffnen“ wählen.";
+    $("viewHint").innerHTML = "Auf den Startbildschirm legen: oben rechts Menü ⋮ → „Zum Startbildschirm hinzufügen“ bzw. „App installieren“. Antippen der Karte schaltet auf Vollbild. <u>OK</u>";
+  }
+  // Android/Chrome: eigenes Manifest nur für diese Karte, damit sie als eigene App mit eigenem Namen installiert wird
+  function cardManifest(name) {
+    let h = 0; for (const ch of location.hash) h = (h * 31 + ch.charCodeAt(0)) >>> 0;   // eigene ID je Karteninhalt
+    const base = location.origin + location.pathname;
+    const icon = f => new URL(f, location.href).href;
+    const m = { name, short_name: name.slice(0, 12), id: base + "?app=" + h.toString(36), start_url: location.href, scope: base,
+                display: "standalone", background_color: "#000000", theme_color: "#000000",
+                icons: [{ src: icon("karte-icon-192.png"), sizes: "192x192", type: "image/png" },
+                        { src: icon("karte-icon-512.png"), sizes: "512x512", type: "image/png" }] };
+    const l = document.createElement("link"); l.rel = "manifest";
+    l.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: "application/manifest+json" }));
+    document.head.append(l);
+  }
   function startViewer() {
     document.body.classList.add("viewing");
     document.documentElement.style.background = "#000";
@@ -329,6 +348,14 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
     $("viewHint").hidden = !!standalone;
     $("viewHint").addEventListener("click", () => $("viewHint").hidden = true);
+    if (ANDROID) {
+      cardManifest(name);
+      // Als Verknüpfung im Browser: Antippen der Karte schaltet auf Vollbild
+      $("viewImg").addEventListener("click", () => {
+        const el = document.documentElement;
+        if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      });
+    }
   }
 
   function load() {
@@ -912,11 +939,10 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     saveBlob(new Blob([buf], { type: "image/png" }), `${fileBase()}-${kind === "tall" ? "hochformat" : "querformat"}.png`);
   }
-  // Als installierte App (v. a. iPhone) funktionieren normale Downloads nicht – dort über das Teilen-Menü speichern.
-  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const standaloneApp = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  // iPhone/iPad: in installierten Web-Apps funktionieren Downloads nicht – dort über das Teilen-Menü speichern.
+  // Android und PC: normaler Download (Download-Ordner).
   function saveBlob(blob, name) {
-    if (!inViewer && (mobile || standaloneApp) && navigator.canShare) {
+    if (!inViewer && IOS && navigator.canShare) {
       const file = new File([blob], name, { type: blob.type });
       if (navigator.canShare({ files: [file] })) {
         navigator.share({ files: [file] }).then(
