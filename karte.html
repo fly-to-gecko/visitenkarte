@@ -117,7 +117,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v24</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v25</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -185,6 +185,12 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
           <label>Ort<input id="city" autocomplete="address-level2"></label>
         </div>
         <label>Land<input id="country" autocomplete="country-name"></label>
+        <label>Firmenname in der Adresse <span class="sub">(belCAT-Design)</span>
+          <select id="orgInAddr">
+            <option value="yes" selected>Ja – Firma steht vor der Anschrift</option>
+            <option value="no">Nein – nur die Anschrift</option>
+          </select>
+        </label>
       </fieldset>
       <fieldset id="styleOpts">
         <legend>Farben (Standard-Design)</legend>
@@ -268,7 +274,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 <script src="jspdf.umd.min.js"></script>
 <script>
 (() => {
-  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","lang","color","theme"];
+  const FIELDS = ["degree","first","last","title","org","orgsub","mobile","phone","email","url","linkedin","street","zip","city","country","degreePos","design","lang","orgInAddr","color","theme"];
   const STORE = "visitenkarte-qr-v1";
   const EXAMPLE = {
     degree: "Dipl.-Ing.", first: "Alex", last: "Beispiel", title: "Geschäftsführerin", org: "belCAT", orgsub: "",
@@ -416,9 +422,9 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     L.push(`N:${esc(v("last"))};${esc(v("first"))};;${esc(v("degree"))};`);
     L.push(`FN:${esc(fn || v("org"))}`);
     if (v("org")) L.push(`ORG:${esc(v("org"))}${v("orgsub") ? ";" + esc(v("orgsub")) : ""}`);
-    if (titleLines().length) L.push(`TITLE:${esc(titleLines().join(", "))}`);
+    if (titleLines().length) L.push(`TITLE:${esc(titleLines()[0])}`);   // nur die Hauptzeile – die Ergänzung bleibt auf der Karte
     if (v("mobile")) L.push(`TEL;TYPE=CELL:${v("mobile")}`);
-    if (v("phone")) L.push(`TEL;TYPE=WORK,VOICE:${v("phone")}`);
+    if (v("phone")) L.push(`TEL;TYPE=WORK:${v("phone")}`);
     if (v("email")) L.push(`EMAIL;TYPE=INTERNET:${v("email")}`);
     if (v("url")) L.push(`URL:${normUrl(v("url"))}`);
     if (v("linkedin")) L.push(`item1.URL:${linkedinUrl()}`, "item1.X-ABLabel:LinkedIn");
@@ -507,7 +513,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (v("linkedin")) lines.push([T("linkedin"), prettyLinkedin()]);
     const addr1 = v("street"), addr2 = [v("zip"), v("city")].filter(Boolean).join(" ");
     const addr = [addr1, addr2, v("country")].filter(Boolean);
-    const withOrg = addr.length && v("org") && $("design").value === "belcat";
+    const withOrg = addr.length && v("org") && $("design").value === "belcat" && $("orgInAddr").value !== "no";
     const addrLabel = v("street") ? T("address") : T("location");   // ohne Straße nur Ort → „Standort“ / „Location“
     if (withOrg && splitAddr) { lines.push([addrLabel, v("org")]); lines.push(["", addr.join(", ")]); }
     else { if (withOrg) addr.unshift(v("org")); if (addr.length) lines.push([addrLabel, addr.join(", ")]); }
@@ -1042,7 +1048,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   });
 
   $("btnClear").addEventListener("click", () => {
-    FIELDS.forEach(f => { if (!["degreePos","design","lang","color","theme"].includes(f)) $(f).value = ""; });
+    FIELDS.forEach(f => { if (!["degreePos","design","lang","orgInAddr","color","theme"].includes(f)) $(f).value = ""; });
     isExample = false; save(); schedule(); statusEl.textContent = "Felder geleert.";
   });
 
