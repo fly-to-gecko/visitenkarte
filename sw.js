@@ -2,7 +2,7 @@
    Bei einer neuen Version die Nummer unten erhöhen (v1 -> v2),
    dann holen sich die Handys beim nächsten Start mit Internet das Update. */
 const PREFIX = "visitenkarte-";
-const CACHE = PREFIX + "v6";
+const CACHE = PREFIX + "v7";
 const FILES = ["./", "index.html", "karte.html", "manifest.webmanifest",
                "qrcode.min.js", "jspdf.umd.min.js",
                "icon-192.png", "icon-512.png", "apple-touch-icon.png", "karte-icon.png"];
