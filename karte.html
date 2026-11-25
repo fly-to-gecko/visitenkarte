@@ -793,6 +793,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       $("viewer").style.background = "#000";
       return;
     }
+    $("lnkHome").href = VIEW_URL + "#karte=" + encodeCard();
     png.card = (bel ? renderCardBel(qr) : renderCard(qr)).toDataURL("image/png");
     png.tall = (bel ? renderPortraitBel(qr) : renderPortrait(qr)).toDataURL("image/png");
     $("outCard").src = png.card;
@@ -801,7 +802,6 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     printCanvas = pc;
     $("outPrint").src = printPreview(pc);
     if (isExample) statusEl.textContent = "Beispieldaten – trag deine eigenen Daten ein.";
-    $("lnkHome").href = VIEW_URL + "#karte=" + encodeCard();
   }
 
   function fileBase() {
@@ -871,7 +871,23 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     saveBlob(new Blob([buf], { type: "image/png" }), `${fileBase()}-${kind === "tall" ? "hochformat" : "querformat"}.png`);
   }
+  // Als installierte App (v. a. iPhone) funktionieren normale Downloads nicht – dort über das Teilen-Menü speichern.
+  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standaloneApp = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
   function saveBlob(blob, name) {
+    if (!inViewer && (mobile || standaloneApp) && navigator.canShare) {
+      const file = new File([blob], name, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).then(
+          () => statusEl.textContent = "Erledigt.",
+          err => {
+            if (err && err.name === "AbortError") { statusEl.textContent = "Abgebrochen."; return; }
+            statusEl.textContent = "Teilen ging nicht – Bild lange drücken → „Zu Fotos hinzufügen“.";
+          });
+        statusEl.textContent = "Im Teilen-Menü „Bild sichern“ bzw. „In Dateien sichern“ wählen.";
+        return;
+      }
+    }
     if (!inViewer) {
       const url = URL.createObjectURL(blob);
       download(url, name);
