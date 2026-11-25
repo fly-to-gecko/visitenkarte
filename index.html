@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v21</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v22</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -438,7 +438,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   };
   // Position: erste Zeile ist die Hauptangabe, die zweite eine Ergänzung in etwas kleinerer Schrift.
   // Gibt die Grundlinie der letzten Zeile zurück.
-  function drawLines(ctx, lines, x, y, lh, weight, family, maxSize, maxW, minSize) {
+  function drawLines(ctx, lines, x, y, lh, weight, family, maxSize, maxW, minSize, color2) {
     const s1 = fitFont(ctx, lines[0], weight, family, maxSize, maxW, minSize);
     ctx.font = `${weight} ${s1}px ${family}`;
     ctx.fillText(lines[0], x, y);
@@ -446,6 +446,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const s2 = Math.min(Math.round(s1 * 0.8), fitFont(ctx, lines[1], weight, family, Math.round(maxSize * 0.8), maxW, minSize * 0.8));
     const y2 = y + lh * 0.92;
     ctx.font = `${weight} ${s2}px ${family}`;
+    if (color2) ctx.fillStyle = color2;
     ctx.fillText(lines[1], x, y2);
     return y2;
   }
@@ -603,7 +604,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
   }
 
   // ---------- belCAT-Stil: Grauverlauf, oranger Streifen, Arial, Dunkelbraun ----------
-  const BEL = { ink: "#000000", val: "#222222", grey: "#666666", light: "#969696", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
+  const BEL = { ink: "#000000", val: "#222222", sub: "#444444", grey: "#666666", light: "#767676", font: '"Arial", "Liberation Sans", "Helvetica Neue", sans-serif' };
   function belHeader(ctx, W, h) {
     const gTop = h * 0.56, sTop = gTop, sBot = h * 0.71;
     let g = ctx.createLinearGradient(0, 0, 0, gTop);
@@ -714,11 +715,6 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     return { c, ctx };
   }
   // bottom: unterste erlaubte Grundlinie – bei vielen Zeilen rücken sie enger zusammen und die Schrift wird etwas kleiner
-  // Arial hat keinen Halbfett-Schnitt: dünne Kontur in Textfarbe macht die Schrift etwas kräftiger
-  function medium(ctx, text, x, y, px, color) {
-    ctx.fillText(text, x, y);
-    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = px * 0.02; ctx.lineJoin = "round"; ctx.strokeText(text, x, y); ctx.restore();
-  }
   function belContacts(ctx, x, y, maxW, align, labelPx, valPx, step, bottom) {
     ctx.textAlign = align;
     const lines = contactLines(), n = lines.length;
@@ -729,7 +725,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     }
     lines.forEach(([label, val]) => {
       ctx.fillStyle = BEL.light; ctx.font = `400 ${labelPx}px ${BEL.font}`; ctx.fillText(label, x, y - valPx * 1.1);
-      ctx.fillStyle = BEL.val; const fpx = fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); medium(ctx, val, x, y, fpx, BEL.val);
+      ctx.fillStyle = BEL.val; fitFont(ctx, val, 400, BEL.font, valPx, maxW, 16); ctx.fillText(val, x, y);
       y += step;
     });
     ctx.textAlign = "left";
@@ -750,7 +746,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const tl = titleLines(), tExtra = Math.max(0, tl.length - 1) * (bosch ? 34 : 40);
     if (tl.length) {
       if (bosch) { ctx.fillStyle = BEL.ink; drawLines(ctx, tl, pad, headH + 215, 34, 700, BEL.font, 28, textW, 16); }
-      else { ctx.fillStyle = BEL.grey; drawLines(ctx, tl, pad, headH + 183, 40, 400, BEL.font, 34, textW, 18); }
+      else { ctx.fillStyle = BEL.ink; drawLines(ctx, tl, pad, headH + 183, 40, 400, BEL.font, 34, textW, 18, BEL.sub); }
     }
     const n = contactLines().length;
     belContacts(ctx, pad, headH + (bosch ? 310 : 290) + tExtra, textW, "left", 22, 34, n > 4 ? (tExtra ? 78 : (bosch ? 84 : 88)) : (tExtra ? 90 : 98), H - 60 - 22);
@@ -768,7 +764,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const tl = titleLines(), tExtra = Math.max(0, tl.length - 1) * (bosch ? 40 : 48);
     if (tl.length) {
       if (bosch) { ctx.fillStyle = BEL.ink; drawLines(ctx, tl, W / 2, headH + 222, 40, 700, BEL.font, 32, W - pad * 2, 16); }
-      else { ctx.fillStyle = BEL.grey; drawLines(ctx, tl, W / 2, headH + 184, 48, 400, BEL.font, 40, W - pad * 2, 20); }
+      else { ctx.fillStyle = BEL.ink; drawLines(ctx, tl, W / 2, headH + 184, 48, 400, BEL.font, 40, W - pad * 2, 20, BEL.sub); }
     }
     const many = Math.max(0, contactLines().length - 5) * 30;   // bei mehr als 5 Kontaktzeilen den QR-Code etwas kleiner
     const qrSize = (bosch ? 580 : (logoReady() ? 620 : 650)) - tExtra - many, qrX = (W - qrSize) / 2, qrY = headH + (bosch ? 262 : 215) + tExtra;
@@ -832,8 +828,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const tl = titleLines(), two = tl.length > 1;
     if (tl.length) {
       y += above ? (two ? 5.5 : 6.5) * MM : 4.2 * MM;
-      ctx.fillStyle = above ? ink : grey;
-      y = drawLines(ctx, tl, L, y, 3.0 * MM, above ? 700 : 400, font, 7.5 * PT, tw, 4 * PT);
+      ctx.fillStyle = above || bel ? ink : grey;
+      y = drawLines(ctx, tl, L, y, 3.0 * MM, above ? 700 : 400, font, 7.5 * PT, tw, 4 * PT, bel && !above ? BEL.sub : undefined);
     }
 
     // Kontakte: Bezeichnung links, Wert daneben, bündig unten am QR-Code
@@ -852,7 +848,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     lines.forEach(([label, val], i) => {
       ctx.fillStyle = light; ctx.font = `400 ${labPx}px ${font}`; ctx.fillText(label, L, cy);
       ctx.font = `400 ${sizes[i]}px ${font}`;
-      if (bel) { ctx.fillStyle = BEL.val; medium(ctx, val, L + labW, cy, sizes[i], BEL.val); }
+      if (bel) { ctx.fillStyle = BEL.val; ctx.fillText(val, L + labW, cy); }
       else { ctx.fillStyle = grey; ctx.fillText(val, L + labW, cy); }
       cy += step;
     });
