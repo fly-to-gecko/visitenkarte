@@ -117,7 +117,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v20</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v21</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -435,12 +435,18 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (withOrg && v("org")) { if (t.length) t[t.length - 1] += " · " + v("org"); else t.push(v("org")); }
     return t;
   };
-  // Mehrere Zeilen in gleicher Schriftgröße; gibt die Grundlinie der letzten Zeile zurück
+  // Position: erste Zeile ist die Hauptangabe, die zweite eine Ergänzung in etwas kleinerer Schrift.
+  // Gibt die Grundlinie der letzten Zeile zurück.
   function drawLines(ctx, lines, x, y, lh, weight, family, maxSize, maxW, minSize) {
-    const size = Math.min(...lines.map(l => fitFont(ctx, l, weight, family, maxSize, maxW, minSize)));
-    ctx.font = `${weight} ${size}px ${family}`;
-    lines.forEach((l, i) => ctx.fillText(l, x, y + i * lh));
-    return y + (lines.length - 1) * lh;
+    const s1 = fitFont(ctx, lines[0], weight, family, maxSize, maxW, minSize);
+    ctx.font = `${weight} ${s1}px ${family}`;
+    ctx.fillText(lines[0], x, y);
+    if (lines.length < 2) return y;
+    const s2 = Math.min(Math.round(s1 * 0.8), fitFont(ctx, lines[1], weight, family, Math.round(maxSize * 0.8), maxW, minSize * 0.8));
+    const y2 = y + lh * 0.92;
+    ctx.font = `${weight} ${s2}px ${family}`;
+    ctx.fillText(lines[1], x, y2);
+    return y2;
   }
   const personName = () => [v("first"), v("last")].filter(Boolean).join(" ");
   const fullName = () => [v("degree"), v("first"), v("last")].filter(Boolean).join(" ");
