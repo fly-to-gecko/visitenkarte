@@ -46,6 +46,7 @@ body {
 }
 .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
 header h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.75rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+header h1 .ver { font-family: var(--font-body, system-ui), sans-serif; font-weight: 500; font-size: 0.8rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; vertical-align: middle; letter-spacing: 0; white-space: nowrap; }
 header p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
 .grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
@@ -116,7 +117,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR</h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v11</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
