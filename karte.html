@@ -117,7 +117,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v19</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v20</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -487,8 +487,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
   // Beschriftungen auf der Karte je nach gewählter Sprache
   const TXT = {
-    de: { mobile: "Mobil", phone: "Telefon", email: "E-Mail", web: "Web", linkedin: "LinkedIn", address: "Adresse", scan: "Scannen = Kontakt speichern" },
-    en: { mobile: "Mobile", phone: "Phone", email: "Email", web: "Web", linkedin: "LinkedIn", address: "Address", scan: "Scan to save contact" }
+    de: { mobile: "Mobil", phone: "Telefon", email: "E-Mail", web: "Web", linkedin: "LinkedIn", address: "Adresse", location: "Standort", scan: "Scannen = Kontakt speichern" },
+    en: { mobile: "Mobile", phone: "Phone", email: "Email", web: "Web", linkedin: "LinkedIn", address: "Address", location: "Location", scan: "Scan to save contact" }
   };
   const T = k => (TXT[$("lang").value] || TXT.de)[k];
   function contactLines(splitAddr) {
@@ -501,8 +501,9 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const addr1 = v("street"), addr2 = [v("zip"), v("city")].filter(Boolean).join(" ");
     const addr = [addr1, addr2, v("country")].filter(Boolean);
     const withOrg = addr.length && v("org") && $("design").value === "belcat";
-    if (withOrg && splitAddr) { lines.push([T("address"), v("org")]); lines.push(["", addr.join(", ")]); }
-    else { if (withOrg) addr.unshift(v("org")); if (addr.length) lines.push([T("address"), addr.join(", ")]); }
+    const addrLabel = v("street") ? T("address") : T("location");   // ohne Straße nur Ort → „Standort“ / „Location“
+    if (withOrg && splitAddr) { lines.push([addrLabel, v("org")]); lines.push(["", addr.join(", ")]); }
+    else { if (withOrg) addr.unshift(v("org")); if (addr.length) lines.push([addrLabel, addr.join(", ")]); }
     return lines;
   }
 
