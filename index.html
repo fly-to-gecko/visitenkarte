@@ -67,6 +67,11 @@ body.viewing > *:not(#viewer) { display: none !important; }
 #viewer { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: #000;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
 #viewImg { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+#viewShare { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  font: 600 16px/1 system-ui, sans-serif; color: #fff; background: rgb(255 255 255 / 0.16); border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: 999px; padding: 12px 20px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+#viewShare:active { background: rgb(255 255 255 / 0.3); }
+#viewShare svg { width: 18px; height: 18px; }
 #viewHint { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); font: 500 15px/1.4 system-ui, sans-serif;
   background: #172029; color: #fff; border: 0; border-radius: 12px; padding: 12px 14px; text-align: left; box-shadow: 0 6px 24px rgb(0 0 0 / 0.3); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -122,7 +127,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v31</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v32</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -291,6 +296,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div id="viewer" hidden>
   <img id="viewImg" alt="Visitenkarte">
+  <button type="button" id="viewShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Kontakt teilen</span></button>
   <button type="button" id="viewHint">Auf den Home-Bildschirm legen: unten auf Teilen □↑ tippen, dann „Zum Home-Bildschirm“. <u>OK</u></button>
 </div>
 
@@ -384,6 +390,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
     $("viewHint").hidden = !!standalone;
     $("viewHint").addEventListener("click", () => $("viewHint").hidden = true);
+    $("viewShare").addEventListener("click", shareContact);
     if (ANDROID) {
       cardManifest(name);
       // Als Verknüpfung im Browser: Antippen der Karte schaltet auf Vollbild
@@ -925,6 +932,41 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     printCanvas = pc;
     $("outPrint").src = printPreview(pc);
     if (isExample) statusEl.textContent = "Beispieldaten – trag deine eigenen Daten ein.";
+  }
+
+  // ---------- Kontakt teilen (nur Kartenanzeige): .vcf mit allen Daten + Kartenbild als Kontaktfoto ----------
+  function cardPhoto() {   // Druckfassung ohne Beschnitt, ca. 1000 px breit, als JPEG
+    let qr; try { qr = makeQr(lastVcf, "M"); } catch (e) { qr = makeQr(lastVcf); }
+    const pc = renderPrint(qr);
+    const sw = (PR.mmW - 2 * PR.bleed) * MM, sh = (PR.mmH - 2 * PR.bleed) * MM;
+    const c = document.createElement("canvas");
+    c.width = 1000; c.height = Math.round(1000 * sh / sw);
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingQuality = "high";
+    g.drawImage(pc, PR.bleed * MM, PR.bleed * MM, sw, sh, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85).split(",")[1];
+  }
+  const foldLine = l => { let o = l.slice(0, 75); for (let i = 75; i < l.length; i += 74) o += "\r\n " + l.slice(i, i + 74); return o; };
+  function contactFile() {
+    const photo = foldLine("PHOTO;ENCODING=b;TYPE=JPEG:" + cardPhoto());
+    const vcf = lastVcf.replace(/\r\nEND:VCARD$/, "\r\n" + photo + "\r\nEND:VCARD") + "\r\n";
+    const name = (personName() || v("org") || "Kontakt").replace(/[\\/:*?"<>|]+/g, "").trim() || "Kontakt";
+    return new File([vcf], name + ".vcf", { type: "text/vcard" });
+  }
+  function shareContact() {
+    const btn = $("viewShare"), label = btn.querySelector("span");
+    const flash = t => { label.textContent = t; setTimeout(() => label.textContent = "Kontakt teilen", 2500); };
+    let file;
+    try { file = contactFile(); } catch (e) { flash("Ging nicht"); return; }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).catch(err => { if (!err || err.name !== "AbortError") flash("Teilen ging nicht"); });
+      return;
+    }
+    const url = URL.createObjectURL(file);   // ohne Teilen-Menü (z. B. PC): als Datei herunterladen
+    download(url, file.name);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    flash("Datei gespeichert");
   }
 
   function fileBase() {
