@@ -126,7 +126,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v1.0</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v1.1</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -457,9 +457,9 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     if (titleLines().length) L.push(`TITLE:${esc(titleLines()[0])}`);   // nur die Hauptzeile – die Ergänzung bleibt auf der Karte
     if (v("mobile")) L.push(`TEL;TYPE=CELL:${v("mobile")}`);
     if (v("phone")) L.push(`TEL;TYPE=WORK:${v("phone")}`);
-    if (v("email")) L.push(`EMAIL;TYPE=INTERNET:${v("email")}`);
+    if (v("email")) L.push(`EMAIL;TYPE=WORK:${v("email")}`);   // WORK statt INTERNET: Samsung zeigte sonst „INTERNET“ als Beschriftung
     if (v("url")) L.push(`URL:${normUrl(v("url"))}`);
-    if (v("linkedin")) L.push(`item1.URL:${linkedinUrl()}`, "item1.X-ABLabel:LinkedIn");
+    if (v("linkedin")) L.push(`URL;TYPE=LinkedIn:${linkedinUrl()}`);   // ohne item1-Gruppe: Samsung-Scanner ließ die gruppierte Zeile weg
     if (v("street") || v("city") || v("zip") || v("country"))
       L.push(`ADR;TYPE=WORK:;;${esc(v("street"))};${esc(v("city"))};;${esc(v("zip"))};${esc(v("country"))}`);
     L.push("END:VCARD");
