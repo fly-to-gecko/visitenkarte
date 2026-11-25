@@ -118,7 +118,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v14</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v15</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -674,9 +674,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       ctx.textAlign = "left";
       // Streifen 53 px hoch (ursprünglich 14 px × 2,5 × 1,5), läuft von Orange (rechts) nach Weiß (links) aus
       const sy = ly + lh + 14 + fsz + 26, sh = 53;
-      let g = ctx.createLinearGradient(W, 0, 0, 0);
+      // rechts endet der Balken ca. 5 mm vor dem Rand (Querformat ≙ 85 mm, Hochformat ≙ 55 mm Breite)
+      const xe = W - Math.round(W * 5 / (portrait ? 55 : 85));
+      let g = ctx.createLinearGradient(xe, 0, 0, 0);
       g.addColorStop(0, "#ffb13b"); g.addColorStop(0.2, "#ffb13b"); g.addColorStop(1, "#ffffff");
-      ctx.fillStyle = g; ctx.fillRect(0, sy, W, sh);
+      ctx.fillStyle = g; ctx.fillRect(0, sy, xe, sh);
       return { c, ctx };
     }
     const { gTop } = belHeader(ctx, W, headH);
@@ -783,10 +785,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       const sub = v("orgsub") || "belCAT - consulting & engineering";
       ctx.fillStyle = "#000"; const fs = fitFont(ctx, sub, 400, font, 6 * PT, lw, 3 * PT);
       ctx.fillText(sub, lx, T + lh + 1 * MM + fs * 0.8);
-      const sy = T + lh + 1 * MM + fs + 1.6 * MM, sh = 3 * MM;   // Streifen bis in den Beschnitt
-      const g = ctx.createLinearGradient(W, 0, 0, 0);
+      const sy = T + lh + 1 * MM + fs + 1.6 * MM, sh = 3 * MM;   // links bis in den Beschnitt
+      const xe = W - (PR.bleed + 5) * MM;                          // rechts 5 mm vor der Schnittkante
+      const g = ctx.createLinearGradient(xe, 0, 0, 0);
       g.addColorStop(0, "#ffb13b"); g.addColorStop(0.2, "#ffb13b"); g.addColorStop(1, "#ffffff");
-      ctx.fillStyle = g; ctx.fillRect(0, sy, W, sh);
+      ctx.fillStyle = g; ctx.fillRect(0, sy, xe, sh);
       stripeBottom = sy + sh;
     } else {
       ctx.fillStyle = acc; ctx.fillRect(0, 0, W, PR.bleed * MM + 1.5 * MM);
