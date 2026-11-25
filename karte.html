@@ -126,7 +126,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v32</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v33</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -340,18 +340,17 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
   }
-  // Symbol für den Home-Bildschirm: Initialen auf Weiß mit orangem Streifen
-  function homeIcon(name) {
+  // Symbol für den Home-Bildschirm: Initialen auf der Akzentfarbe
+  function homeIcon(name) {   // Initialen auf der Akzentfarbe der Karte (belCAT: Orange)
+    const acc = $("design").value === "belcat" ? "#ffb13b" : ($("color").value || "#1f6f78");
+    const n = parseInt(acc.slice(1), 16), lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
     const c = document.createElement("canvas"); c.width = c.height = 180;
     const x = c.getContext("2d");
-    x.fillStyle = "#ffffff"; x.fillRect(0, 0, 180, 180);
-    const g = x.createLinearGradient(180, 0, 0, 0);
-    g.addColorStop(0, "#ffb13b"); g.addColorStop(0.2, "#ffb13b"); g.addColorStop(1, "#ffffff");
-    x.fillStyle = g; x.fillRect(0, 128, 180, 18);
+    x.fillStyle = acc; x.fillRect(0, 0, 180, 180);
     const ini = [v("first"), v("last")].filter(Boolean).map(t => t[0].toUpperCase()).join("") || (name || "V")[0].toUpperCase();
-    x.fillStyle = "#463c3c"; x.textAlign = "center"; x.textBaseline = "alphabetic";
-    x.font = `700 ${ini.length > 1 ? 72 : 88}px "Arial", "Liberation Sans", sans-serif`;
-    x.fillText(ini, 90, 108);
+    x.fillStyle = lum > 0.6 ? "#463c3c" : "#ffffff"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = `700 ${ini.length > 1 ? 76 : 92}px "Arial", "Liberation Sans", sans-serif`;
+    x.fillText(ini, 90, 96);
     return c.toDataURL("image/png");
   }
   function setHead(sel, attr, make, value) {
