@@ -126,7 +126,7 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
 
 <div class="wrap">
   <header>
-    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v1.1</span></h1>
+    <h1>Visitenkarte QR <span class="ver" id="appVer" title="App-Version">v1.2</span></h1>
     <p>Kontaktdaten eintragen, Bild im Quer- oder Hochformat sichern. Der QR-Code enthält eine vCard: Wer ihn mit der Handykamera scannt, kann dich direkt als Kontakt speichern.</p>
   </header>
 
@@ -509,8 +509,8 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
     qr.make();
     return qr;
   }
-  function drawQr(ctx, qr, x, y, size) {
-    const n = qr.getModuleCount(), quiet = 3, total = n + quiet * 2;
+  function drawQr(ctx, qr, x, y, size, quiet = 3) {
+    const n = qr.getModuleCount(), total = n + quiet * 2;
     const m = size / total;
     ctx.fillStyle = "#ffffff";
     roundRect(ctx, x, y, size, size, size * 0.04); ctx.fill();
@@ -851,9 +851,11 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       stripeBottom = T + 9 * MM;
     }
 
-    // QR unten rechts
-    const qs = 19 * MM, qx = R - qs, qy = B - qs;
-    drawQr(ctx, qr, qx, qy, qs);
+    // QR unten rechts: das eigentliche Muster ist 23 × 23 mm (wie bei professionellen Karten) und endet bündig
+    // mit dem sicheren Bereich; die weiße Ruhezone (2 Module) darf in den Randabstand ragen – die Karte ist dort weiß.
+    const qd = 23 * MM, qn = qr.getModuleCount(), qz = 2, qm = qd / qn;
+    const qx = R - qd, qy = B - qd;
+    drawQr(ctx, qr, qx - qz * qm, qy - qz * qm, qd + 2 * qz * qm, qz);
 
     // Name und Position
     const tw = qx - L - 4 * MM;
@@ -870,21 +872,20 @@ pre { font-family: var(--font-mono); font-size: 0.78rem; background: var(--field
       y = drawLines(ctx, tl, L, y, 3.0 * MM, above ? 700 : 400, font, 7.5 * PT, tw, 4 * PT, bel && !above ? BEL.sub : undefined);
     }
 
-    // Kontakte: Bezeichnung links, Wert daneben, bündig unten am QR-Code
+    // Kontakte ohne Bezeichnungen (spart Platz für den größeren QR-Code), bündig unten am QR-Code
     // Abstand so wählen, dass alle Zeilen zwischen Position und Unterkante passen
-    const lines = contactLines(true), labW = 13 * MM;
+    const lines = contactLines(true), labW = 0;
     // Bei vielen Zeilen: kleinerer Abstand zur Position, engere Zeilen und etwas kleinere Schrift
     const n = lines.length;
     let gap = 4.4 * MM, step = n > 1 ? (B - (y + gap)) / (n - 1) : 3.6 * MM;
     if (n > 1 && step < 2.7 * MM) { gap = 3.6 * MM; step = (B - (y + gap)) / (n - 1); }
     step = Math.max(2.2 * MM, Math.min(3.6 * MM, step));
-    const valPx = Math.min(7 * PT, step * 0.8), labPx = Math.min(5.5 * PT, valPx * 0.8);
+    const valPx = Math.min(7 * PT, step * 0.8);
     let cy = B - (n - 1) * step;
     // Schriftgröße je Zeile; Folgezeilen ohne Bezeichnung (Firma + Anschrift) bekommen dieselbe Größe wie ihre Vorzeile
     const sizes = lines.map(([, val]) => fitFont(ctx, val, 400, font, valPx, tw - labW, 4 * PT));
     for (let i = 1; i < n; i++) if (!lines[i][0]) { const m = Math.min(sizes[i], sizes[i - 1]); sizes[i] = sizes[i - 1] = m; }
     lines.forEach(([label, val], i) => {
-      ctx.fillStyle = light; ctx.font = `400 ${labPx}px ${font}`; ctx.fillText(label, L, cy);
       ctx.font = `400 ${sizes[i]}px ${font}`;
       if (bel) { ctx.fillStyle = BEL.val; ctx.fillText(val, L + labW, cy); }
       else { ctx.fillStyle = grey; ctx.fillText(val, L + labW, cy); }
